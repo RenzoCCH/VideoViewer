@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Player</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        color: white;
+        height: 100%;
+        display: flex;
+        overflow: hidden;
+      }
+      #videoContainer {
+        flex: 3;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      #videoListContainer {
+        flex: 1;
+        background: #222;
+        overflow-y: auto;
+        padding: 10px;
+      }
+      #videoList {
+        list-style: none;
+        padding: 0;
+      }
+      .videoItem {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+        transition: background 0.3s;
+      }
+      .videoItem:hover {
+        background: #333;
+      }
+      .playing {
+        background: #ff9800; /* Highlight currently playing video */
+        font-weight: bold;
+      }
+      #uploadButton {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        color: black;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        border-radius: 5px;
+      }
+      #filePicker {
+        display: none;
+      }
+    </style>
+    <script>
+      let videoList = [];
+      let currentIndex = 0;
+      const ws = new WebSocket(`ws://${window.location.host}`);
+
+      function uploadFiles(event) {
+        const formData = new FormData();
+        const files = event.target.files;
+        if (!files.length) return alert("Please select videos!");
+
+        Array.from(files).forEach((file) => formData.append("videos", file));
+
+        fetch("/upload", { method: "POST", body: formData })
+          .then((response) => response.json())
+          .then(() => fetchVideos())
+          .catch((err) => console.error("Upload error:", err));
+      }
+
+      function fetchVideos() {
+        fetch("/videos")
+          .then((response) => response.json())
+          .then((videos) => {
+            if (!Array.isArray(videos) || videos.length === 0) {
+              alert("No videos found!");
+              return;
+            }
+            videoList = videos;
+            currentIndex = 0;
+            updateVideoList();
+            playVideo(videoList[currentIndex]);
+          })
+          .catch((err) => console.error("Error loading videos:", err));
+      }
+
+      function playVideo(filename, index = 0) {
+        currentIndex = index;
+        const videoElement = document.getElementById("videoPlayer");
+        videoElement.src = `/video?filename=${encodeURIComponent(filename)}`;
+        videoElement.play();
+        updateVideoList();
+      }
+
+      function playNextVideo() {
+        console.log("videoList", videoList);
+
+        if (currentIndex + 1 < videoList.length) {
+          playVideo(videoList[++currentIndex], currentIndex);
+        }
+      }
+
+      function updateVideoList() {
+        console.log("current index", currentIndex);
+
+        const listContainer = document.getElementById("videoList");
+        listContainer.innerHTML = "";
+        videoList.forEach((file, index) => {
+          const listItem = document.createElement("li");
+          listItem.textContent = file;
+          listItem.className =
+            "videoItem" + (index === currentIndex ? " playing" : "");
+          listItem.onclick = () => playVideo(file, index);
+          listContainer.appendChild(listItem);
+        });
+      }
+
+      function triggerFilePicker() {
+        document.getElementById("filePicker").click();
+      }
+
+      function handleKeyPress(event) {
+        const videoElement = document.getElementById("videoPlayer");
+        switch (event.key) {
+          case "ArrowRight": // Forward 15 sec
+            videoElement.currentTime += 15;
+            break;
+          case "ArrowLeft": // Backward 15 sec
+            videoElement.currentTime = Math.max(
+              0,
+              videoElement.currentTime - 15
+            );
+            break;
+          case "ArrowUp": // Increase playback speed
+            videoElement.playbackRate = Math.min(
+              videoElement.playbackRate + 1,
+              4
+            ); // Max 4x speed
+            break;
+          case "ArrowDown": // Decrease playback speed
+            videoElement.playbackRate = Math.max(
+              videoElement.playbackRate - 1,
+              0.5
+            ); // Min 0.5x speed
+            break;
+        }
+      }
+
+      window.addEventListener("keydown", handleKeyPress);
+      window.addEventListener("beforeunload", () => ws.close());
+
+      // Ensure next video plays when the current one ends
+      document.addEventListener("DOMContentLoaded", () => {
+        document
+          .getElementById("videoPlayer")
+          .addEventListener("ended", playNextVideo);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="videoContainer">
+      <video id="videoPlayer" controls autoplay>
+        <source src="" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <button id="uploadButton" onclick="triggerFilePicker()">
+        📂 Select Videos
+      </button>
+      <input
+        type="file"
+        id="filePicker"
+        multiple
+        onchange="uploadFiles(event)"
+      />
+    </div>
+    <div id="videoListContainer">
+      <ul id="videoList"></ul>
+    </div>
+  </body>
+</html>
