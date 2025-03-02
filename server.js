@@ -75,6 +75,15 @@ app.get("/video", (req, res) => {
     }
 });
 
+// Delete all videos
+app.delete("/videos", (req, res) => {
+    fs.readdir(uploadDir, (err, files) => {
+        if (err) return res.status(500).send("Error reading directory");
+        files.forEach(file => fs.unlinkSync(path.join(uploadDir, file)));
+        res.json({ message: "All videos deleted" });
+    });
+});
+
 // Start WebSocket Server
 const server = app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 const wss = new WebSocket.Server({ server });

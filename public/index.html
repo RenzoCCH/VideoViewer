@@ -120,17 +120,25 @@
         currentIndex = index;
         const videoElement = document.getElementById("videoPlayer");
 
-        // Store the current playback rate before changing the video
-        currentPlaybackRate = videoElement.playbackRate;
+        // Clear all videos from the server
+        fetch("/videos", { method: "DELETE" })
+          .then(response => response.json())
+          .then(() => {
+            // Store the current playback rate before changing the video
+            currentPlaybackRate = videoElement.playbackRate;
 
-        // Change the video source and play
-        videoElement.src = `/video?filename=${encodeURIComponent(filename)}`;
-        videoElement.play();
+            // Change the video source and play
+            videoElement.src = `/video?filename=${encodeURIComponent(filename)}`;
+            videoElement.play();
 
-        // Apply the stored playback rate to the new video
-        videoElement.playbackRate = currentPlaybackRate;
+            // Apply the stored playback rate to the new video
+            videoElement.playbackRate = currentPlaybackRate;
 
-        updateVideoList();
+            // Clear the video list
+            videoList = [];
+            updateVideoList();
+          })
+          .catch(err => console.error("Error deleting videos:", err));
       }
 
       function playNextVideo() {
@@ -174,13 +182,13 @@
             break;
           case "ArrowUp": // Increase playback speed
             videoElement.playbackRate = Math.min(
-              videoElement.playbackRate + 1,
+              videoElement.playbackRate + .25,
               4
             ); // Max 4x speed
             break;
           case "ArrowDown": // Decrease playback speed
             videoElement.playbackRate = Math.max(
-              videoElement.playbackRate - 1,
+              videoElement.playbackRate - .25,
               0.5
             ); // Min 0.5x speed
             break;
