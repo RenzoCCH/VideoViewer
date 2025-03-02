@@ -120,25 +120,17 @@
         currentIndex = index;
         const videoElement = document.getElementById("videoPlayer");
 
-        // Clear all videos from the server
-        fetch("/videos", { method: "DELETE" })
-          .then(response => response.json())
-          .then(() => {
-            // Store the current playback rate before changing the video
-            currentPlaybackRate = videoElement.playbackRate;
+        // Store the current playback rate before changing the video
+        currentPlaybackRate = videoElement.playbackRate;
 
-            // Change the video source and play
-            videoElement.src = `/video?filename=${encodeURIComponent(filename)}`;
-            videoElement.play();
+        // Change the video source and play
+        videoElement.src = `/video?filename=${encodeURIComponent(filename)}`;
+        videoElement.play();
 
-            // Apply the stored playback rate to the new video
-            videoElement.playbackRate = currentPlaybackRate;
+        // Apply the stored playback rate to the new video
+        videoElement.playbackRate = currentPlaybackRate;
 
-            // Clear the video list
-            videoList = [];
-            updateVideoList();
-          })
-          .catch(err => console.error("Error deleting videos:", err));
+        updateVideoList();
       }
 
       function playNextVideo() {
@@ -165,7 +157,18 @@
       }
 
       function triggerFilePicker() {
-        document.getElementById("filePicker").click();
+        // Clear all videos from the server
+        fetch("/videos", { method: "DELETE" })
+          .then(response => response.json())
+          .then(() => {
+            // Clear the video list
+            videoList = [];
+            updateVideoList();
+
+            // Trigger the file picker
+            document.getElementById("filePicker").click();
+          })
+          .catch(err => console.error("Error deleting videos:", err));
       }
 
       function handleKeyPress(event) {

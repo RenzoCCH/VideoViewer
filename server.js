@@ -33,6 +33,11 @@ app.get("/videos", (req, res) => {
     fs.readdir(uploadDir, (err, files) => {
         if (err) return res.status(500).send("Error reading directory");
         const videoFiles = files.filter(file => file.match(/\.(mp4|webm|ogg)$/i));
+        videoFiles.sort((a, b) => {
+            const numA = parseInt(a.split(' ')[0], 10);
+            const numB = parseInt(b.split(' ')[0], 10);
+            return numA - numB;
+        });
         res.json(videoFiles);
     });
 });
